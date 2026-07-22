@@ -1,0 +1,18 @@
+{
+  "brand": "Aprilia",
+  "model": "RS 125",
+  "year": "2023",
+  "category": "sport",
+  "engine": "124.2cc",
+  "images": [
+    "front.jpg",
+    "rear.jpg",
+    "left.jpg",
+    "right.jpg",
+    "dashboard.jpg",
+    "engine.jpg",
+    "exhaust.jpg",
+    "color1.jpg",
+    "color2.jpg"
+  ]
+}

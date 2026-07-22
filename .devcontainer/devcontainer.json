@@ -1,0 +1,25 @@
+{
+  "name": "MotoMod AI & BikeVerse Dataset Environment",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/sqlite:1": {}
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "MotoMod AI Web Platform",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "cd motomod-ai/backend && python -m pip install -r requirements.txt && python reset_db_seed.py",
+  "postStartCommand": "cd motomod-ai/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}

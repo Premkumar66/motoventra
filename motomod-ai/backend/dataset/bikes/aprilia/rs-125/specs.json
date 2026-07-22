@@ -1,0 +1,31 @@
+{
+  "id": "aprilia-rs-125",
+  "brand": "Aprilia",
+  "brand_slug": "aprilia",
+  "model_name": "RS 125",
+  "model_slug": "rs-125",
+  "generation": "Gen 3",
+  "year": 2023,
+  "category": "sport",
+  "engine_cc": 124.2,
+  "power_hp": 15.0,
+  "torque_nm": 11.2,
+  "fuel_tank_l": 14.5,
+  "mileage_kmpl": 40.0,
+  "transmission": "6-Speed Manual",
+  "weight_kg": 165.0,
+  "seat_height_mm": 800.0,
+  "ground_clearance_mm": 160.0,
+  "wheelbase_mm": 1380.0,
+  "has_abs": true,
+  "top_speed_kmh": 125.0,
+  "fuel_type": "Petrol",
+  "cooling_type": "Liquid Cooled",
+  "cylinders": 1,
+  "price_inr": 220000.0,
+  "price_usd": 2634.73,
+  "color_variants": [
+    "GP Replica"
+  ],
+  "image_paths": []
+}

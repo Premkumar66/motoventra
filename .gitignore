@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+.env
+!.env.example
+
+# SQLite Databases (optional local persistence)
+*.sqlite
+*.db
+
+# Media uploads (large binary blobs)
+# static/dataset_images/*
+
+# IDE and OS files
+mingit/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Task and log files
+*.log
