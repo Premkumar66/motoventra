@@ -4297,3 +4297,8 @@ async def seed_data():
 
         await session.commit()
         print(f"Seeded {len(BIKES_AND_VARIANTS_SEED)} models, users, licenses, and sources successfully!")
+
+    # Phase 5: Seed Modification Parts with strict per-bike compatibility
+    from app.core.seed_modifications import seed_modification_parts
+    await seed_modification_parts(session)
+

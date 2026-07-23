@@ -240,6 +240,10 @@ class MotorcycleVariant(AuditModel):
     data_source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     data_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     extra_specs: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # ─── 3D & 360° Media ───────────────────────────────────
+    three_d_model_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # URL/path to GLB/GLTF file
+    spin_360_urls: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)  # List of 360° rotation image URLs
+    primary_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # Definitive primary image for this variant
 
     # ─── Relationships ───────────────────────────────────────
     motorcycle: Mapped["Motorcycle"] = relationship("Motorcycle", back_populates="variants")

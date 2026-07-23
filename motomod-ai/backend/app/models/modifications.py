@@ -127,7 +127,10 @@ class Modification(AuditModel):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     requires_professional_install: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_legal_for_road: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    is_universal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # True = compatible with all bikes
+    is_universal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # If True, compatible with ALL motorcycles
     extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
 
     # ─── Relationships ───────────────────────────────────────
     category: Mapped["ModificationCategoryModel"] = relationship(

@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<!-- model-viewer for 3D GLB models -->
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 <style>
 :root {
   --bg: #060b18;
@@ -366,24 +368,57 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);overflow-x:hidd
       </div>
 
       <!-- Step 3: Viewer + Specs -->
-      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.1rem;margin-bottom:1.1rem">
-        <div class="card">
-          <div class="ct">📷 3D Visualizer</div>
-          <div class="vp">
-            <canvas id="cvs"></canvas>
-            <div class="hud" id="hudTxt">Select a motorcycle</div>
-            <div class="vp-btns">
-              <button class="vbtn on" id="bWire" onclick="setMode('wire')">Wireframe</button>
-              <button class="vbtn"    id="bSolid" onclick="setMode('solid')">Solid</button>
-              <button class="vbtn"    id="bSound" onclick="doSound()">🔊 Engine</button>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ct">📈 Stock Specs</div>
-          <div id="variantBox"><div style="color:var(--muted);font-size:0.88rem">Select a model to view specifications.</div></div>
-        </div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.1rem;margin-bottom:1.1rem">
+  <div class="card">
+    <div class="ct" id="viewerTitle">📷 Viewer
+      <div style="margin-left:auto;display:flex;gap:0.4rem" id="viewerTabs">
+        <button class="vbtn on" id="btn3D" onclick="setViewerMode('3d')">3D</button>
+        <button class="vbtn" id="btn360" onclick="setViewerMode('360')">360°</button>
+        <button class="vbtn" id="btnGallery" onclick="setViewerMode('gallery')">Gallery</button>
       </div>
+    </div>
+    <div class="vp">
+      <!-- 3D Model Viewer -->
+      <div id="viewer3D" style="width:100%;height:100%;display:none">
+        <model-viewer id="modelViewer"
+          style="width:100%;height:100%;background:transparent"
+          auto-rotate camera-controls
+          ar ar-modes="webxr scene-viewer quick-look"
+          shadow-intensity="1"
+          exposure="0.8"
+          loading="lazy">
+          <div slot="poster" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted)">
+            <div class="loading"><div class="spin"></div> Loading 3D Model…</div>
+          </div>
+        </model-viewer>
+      </div>
+      <!-- 360° Spinner -->
+      <div id="viewer360" style="width:100%;height:100%;position:relative;display:none;cursor:grab;overflow:hidden">
+        <img id="img360" src="" style="width:100%;height:100%;object-fit:contain" draggable="false">
+        <div style="position:absolute;bottom:0.8rem;left:50%;transform:translateX(-50%);font-size:0.72rem;color:var(--c1);background:rgba(0,0,0,0.6);padding:0.2rem 0.8rem;border-radius:10px">↔ Drag to rotate</div>
+      </div>
+      <!-- Image Gallery -->
+      <div id="viewerGallery" style="width:100%;height:100%;position:relative">
+        <canvas id="cvs" style="display:none"></canvas>
+        <img id="galleryMainImg" src="" style="width:100%;height:100%;object-fit:contain;display:none" alt="Motorcycle">
+        <div class="hud" id="hudTxt">Select a motorcycle</div>
+        <div id="galleryThumbs" style="position:absolute;bottom:0.4rem;left:0;right:0;display:flex;justify-content:center;gap:0.4rem;padding:0 0.5rem"></div>
+      </div>
+      <div class="vp-btns">
+        <button class="vbtn on" id="bWire" onclick="setMode('wire')" style="display:none">Wireframe</button>
+        <button class="vbtn" id="bSolid" onclick="setMode('solid')" style="display:none">Solid</button>
+        <button class="vbtn" id="bSound" onclick="doSound()">🔊 Engine</button>
+        <button class="vbtn" id="bFullscreen" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+      </div>
+    </div>
+    <!-- Gallery strip -->
+    <div id="galleryStrip" style="display:flex;gap:0.5rem;margin-top:0.6rem;overflow-x:auto;padding-bottom:0.3rem"></div>
+  </div>
+  <div class="card">
+    <div class="ct">📈 Stock Specs</div>
+    <div id="variantBox"><div style="color:var(--muted);font-size:0.88rem">Select a model to view specifications.</div></div>
+  </div>
+</div>
 
       <!-- Step 4: Mods -->
       <div class="card" style="margin-bottom:1.1rem">
@@ -648,6 +683,28 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);overflow-x:hidd
   </div>
 </div>
 
+<!-- ═══ BIKE DETAIL MODAL ═══ -->
+<div class="mo" id="bikeDetailMo">
+  <div class="mb" style="width:920px;max-width:97vw;max-height:92vh;overflow-y:auto">
+    <div class="mh" id="bikeDetailHeader">
+      <h3 id="bikeDetailTitle">Bike Details</h3>
+      <button class="mx" onclick="closeM('bikeDetailMo')">✕</button>
+    </div>
+    <!-- Detail Tabs -->
+    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;padding:0.8rem 1.4rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2)" id="detailTabs">
+      <button class="ctab on" onclick="switchDetailTab('overview')">Overview</button>
+      <button class="ctab" onclick="switchDetailTab('specs')">Specs</button>
+      <button class="ctab" onclick="switchDetailTab('gallery')">Gallery</button>
+      <button class="ctab" onclick="switchDetailTab('parts')">Compatible Parts</button>
+      <button class="ctab" onclick="switchDetailTab('predictions')">AI Predictions</button>
+      <button class="ctab" onclick="switchDetailTab('reviews')">Reviews</button>
+    </div>
+    <div class="mbody" id="bikeDetailBody">
+      <div class="loading"><div class="spin"></div> Loading bike details…</div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════════
      JAVASCRIPT ENGINE
 ══════════════════════════════════════════════════════════════ -->
@@ -759,6 +816,274 @@ function logout() {
   document.getElementById('authView').style.display = 'flex';
 }
 
+// ─── Viewer Mode Control ─────────────────────────────────────────────────────
+let currentViewerMode = 'gallery';
+let spin360Images = [];
+let spin360Index = 0;
+let isDragging360 = false;
+let drag360StartX = 0;
+
+function setViewerMode(mode) {
+  currentViewerMode = mode;
+  document.getElementById('viewer3D').style.display = mode === '3d' ? 'block' : 'none';
+  document.getElementById('viewer360').style.display = mode === '360' ? 'block' : 'none';
+  document.getElementById('viewerGallery').style.display = mode !== '3d' && mode !== '360' ? 'block' : 'none';
+  document.querySelectorAll('#viewerTabs .vbtn').forEach(b => b.classList.remove('on'));
+  const modeMap = {'3d': 'btn3D', '360': 'btn360', 'gallery': 'btnGallery'};
+  document.getElementById(modeMap[mode])?.classList.add('on');
+}
+
+function init360Drag() {
+  const container = document.getElementById('viewer360');
+  if (!container) return;
+  container.addEventListener('mousedown', e => { isDragging360 = true; drag360StartX = e.clientX; container.style.cursor = 'grabbing'; });
+  container.addEventListener('mousemove', e => {
+    if (!isDragging360 || !spin360Images.length) return;
+    const dx = e.clientX - drag360StartX;
+    if (Math.abs(dx) > 20) {
+      spin360Index = (spin360Index + (dx > 0 ? 1 : -1) + spin360Images.length) % spin360Images.length;
+      document.getElementById('img360').src = spin360Images[spin360Index];
+      drag360StartX = e.clientX;
+    }
+  });
+  container.addEventListener('mouseup', () => { isDragging360 = false; container.style.cursor = 'grab'; });
+  container.addEventListener('mouseleave', () => { isDragging360 = false; container.style.cursor = 'grab'; });
+  // Touch support
+  container.addEventListener('touchstart', e => { isDragging360 = true; drag360StartX = e.touches[0].clientX; }, {passive: true});
+  container.addEventListener('touchmove', e => {
+    if (!isDragging360 || !spin360Images.length) return;
+    const dx = e.touches[0].clientX - drag360StartX;
+    if (Math.abs(dx) > 15) {
+      spin360Index = (spin360Index + (dx > 0 ? 1 : -1) + spin360Images.length) % spin360Images.length;
+      document.getElementById('img360').src = spin360Images[spin360Index];
+      drag360StartX = e.touches[0].clientX;
+    }
+  }, {passive: true});
+  container.addEventListener('touchend', () => { isDragging360 = false; }, {passive: true});
+}
+
+function toggleFullscreen() {
+  const vp = document.querySelector('.vp');
+  if (!document.fullscreenElement) {
+    vp.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
+function updateViewerWithVariant(variant) {
+  if (!variant) return;
+  const hudEl = document.getElementById('hudTxt');
+  const galleryImg = document.getElementById('galleryMainImg');
+  const galleryStrip = document.getElementById('galleryStrip');
+  const cvs = document.getElementById('cvs');
+
+  // Determine primary display image
+  const primaryImg = variant.primary_image_url ||
+    (variant.images && variant.images.find(i => i.is_primary)?.url) ||
+    (variant.images && variant.images[0]?.url) ||
+    null;
+
+  if (primaryImg) {
+    galleryImg.style.display = 'block';
+    galleryImg.src = primaryImg;
+    galleryImg.dataset.brand = selBrand?.slug || '';
+    galleryImg.dataset.model = selModel?.slug || '';
+    galleryImg.onerror = function() {
+      this.onerror = null;
+      this.src = `/api/v1/bikes/placeholder/${encodeURIComponent(selBrand?.slug||'motorcycle')}/${encodeURIComponent(selModel?.slug||'model')}`;
+    };
+    cvs.style.display = 'none';
+    if (hudEl) hudEl.style.display = 'none';
+  } else {
+    // Fall back to canvas wireframe
+    galleryImg.style.display = 'none';
+    cvs.style.display = 'block';
+    if (hudEl) { hudEl.style.display = 'block'; hudEl.textContent = `${selBrand?.name||''} ${selModel?.name||''}`; }
+    updateCanvas();
+  }
+
+  // Render gallery strip
+  if (variant.images && variant.images.length > 0) {
+    galleryStrip.innerHTML = variant.images.map((img, i) => `
+      <img src="${img.url}" style="width:56px;height:40px;object-fit:cover;border-radius:5px;cursor:pointer;border:2px solid ${i===0?'var(--c1)':'var(--border)'};"
+        onclick="document.getElementById('galleryMainImg').src='${img.url}';this.parentElement.querySelectorAll('img').forEach(x=>x.style.borderColor='var(--border)');this.style.borderColor='var(--c1)'"
+        onerror="this.style.display='none'"
+      >`).join('');
+  } else {
+    galleryStrip.innerHTML = '';
+  }
+
+  // Handle 3D model
+  const modelViewer = document.getElementById('modelViewer');
+  if (variant.three_d_model_url && modelViewer) {
+    modelViewer.src = variant.three_d_model_url;
+    document.getElementById('btn3D').style.display = 'inline-block';
+  } else {
+    document.getElementById('btn3D').style.display = 'none';
+  }
+
+  // Handle 360° spin
+  spin360Images = variant.spin_360_urls || [];
+  if (spin360Images.length > 0) {
+    spin360Index = 0;
+    document.getElementById('img360').src = spin360Images[0];
+    document.getElementById('btn360').style.display = 'inline-block';
+  } else {
+    document.getElementById('btn360').style.display = 'none';
+  }
+
+  // Set default viewer mode
+  if (variant.three_d_model_url) {
+    setViewerMode('3d');
+  } else if (spin360Images.length > 0) {
+    setViewerMode('360');
+  } else {
+    setViewerMode('gallery');
+  }
+}
+
+// ─── Bike Detail Modal ────────────────────────────────────────────────────────
+async function openBikeDetail(variantId) {
+  document.getElementById('bikeDetailMo').classList.add('open');
+  document.getElementById('bikeDetailBody').innerHTML = '<div class="loading"><div class="spin"></div> Loading bike details…</div>';
+
+  try {
+    const details = await api(`/bikes/variants/${variantId}/full-details`);
+    renderBikeDetail(details);
+  } catch(e) {
+    document.getElementById('bikeDetailBody').innerHTML = `<div class="empty"><div class="ei">⚠️</div>Failed to load bike details.</div>`;
+  }
+}
+
+function switchDetailTab(tab) {
+  document.querySelectorAll('#detailTabs .ctab').forEach(b => b.classList.remove('on'));
+  event.target.classList.add('on');
+  const detailData = window._bikeDetailData;
+  if (!detailData) return;
+  renderDetailSection(tab, detailData);
+}
+
+function renderBikeDetail(details) {
+  window._bikeDetailData = details;
+  document.getElementById('bikeDetailTitle').textContent = `${details.brand?.name || ''} ${details.model?.name || ''} ${details.year}`;
+  renderDetailSection('overview', details);
+}
+
+function renderDetailSection(section, d) {
+  const body = document.getElementById('bikeDetailBody');
+  const s = d.specs;
+  switch(section) {
+    case 'overview':
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:1.2rem">
+          <div>
+            <div style="height:200px;border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.3);margin-bottom:1rem;position:relative">
+              <img src="${d.primary_image}" style="width:100%;height:100%;object-fit:contain"
+                onerror="this.onerror=null;this.src='/api/v1/bikes/placeholder/${encodeURIComponent(d.brand?.slug||'motorcycle')}/${encodeURIComponent(d.model?.slug||'model')}'"
+              >
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem">
+              ${[{l:'Engine',v:`${s.engine_cc||'—'} cc`,c:'var(--c1)'},{l:'Power',v:`${s.horsepower_bhp||'—'} bhp`,c:'var(--c1)'},{l:'Torque',v:`${s.torque_nm||'—'} Nm`,c:'var(--c2)'},{l:'Mileage',v:`${s.mileage_kmpl||'—'} kmpl`,c:'var(--green)'},{l:'Top Speed',v:`${s.top_speed_kmh||'—'} kmh`,c:'var(--txt)'},{l:'Weight',v:`${s.kerb_weight_kg||s.weight_kg||'—'} kg`,c:'var(--amber)'}].map(x=>`<div class="st"><div class="st-l">${x.l}</div><div class="st-v" style="color:${x.c}">${x.v}</div></div>`).join('')}
+            </div>
+          </div>
+          <div>
+            <div style="background:rgba(0,242,254,0.04);border:1px solid rgba(0,242,254,0.14);border-radius:12px;padding:1.2rem;margin-bottom:1rem">
+              <div style="font-family:var(--fH);font-size:1.8rem;font-weight:900;color:var(--green)">₹${s.price_inr?(s.price_inr/100000).toFixed(2)+'L':'N/A'}</div>
+              <div style="font-size:0.78rem;color:var(--muted)">Ex-showroom ${s.ex_showroom_city||'India'}</div>
+              ${s.price_usd?`<div style="font-size:0.85rem;color:var(--muted);margin-top:0.3rem">$${s.price_usd.toLocaleString()} USD</div>`:''}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem">
+              ${s.has_abs?'<span class="badge" style="border-color:var(--green);color:var(--green)">ABS</span>':''}
+              ${s.has_traction_control?'<span class="badge" style="border-color:var(--c1);color:var(--c1)">Traction Control</span>':''}
+              ${s.has_ride_modes?'<span class="badge" style="border-color:var(--c2);color:var(--c2)">Ride Modes</span>':''}
+              ${s.has_quickshifter?'<span class="badge" style="border-color:var(--amber);color:var(--amber)">Quickshifter</span>':''}
+              ${s.has_bluetooth?'<span class="badge">Bluetooth</span>':''}
+            </div>
+            <div style="font-size:0.82rem;color:var(--muted);line-height:1.6">
+              ${s.engine_type||''} ${s.cylinders?`• ${s.cylinders}-cylinder`:''} ${s.cooling?`• ${s.cooling} cooled`:''}
+            </div>
+          </div>
+        </div>`;
+      break;
+    case 'specs':
+      const specGroups = [
+        {title:'Engine', items:[['Displacement',`${s.engine_cc||'—'} cc`],['Type',s.engine_type||'—'],['Cylinders',s.cylinders||'—'],['Fuel System',s.fuel_system||'—'],['Cooling',s.cooling||'—'],['Emission',s.emission_standard||'—']]},
+        {title:'Performance', items:[['Power',`${s.horsepower_bhp||'—'} bhp @ ${s.horsepower_rpm||'—'} rpm`],['Torque',`${s.torque_nm||'—'} Nm @ ${s.torque_rpm||'—'} rpm`],['Top Speed',`${s.top_speed_kmh||'—'} kmh`],['Mileage',`${s.mileage_kmpl||'—'} kmpl`],['0-100',s.acceleration_0_100?`${s.acceleration_0_100} sec`:'—']]},
+        {title:'Transmission', items:[['Type',s.transmission||'—'],['Gears',s.gear_count||'—']]},
+        {title:'Dimensions', items:[['Kerb Weight',`${s.kerb_weight_kg||'—'} kg`],['Wheelbase',`${s.wheelbase_mm||'—'} mm`],['Seat Height',`${s.seat_height_mm||'—'} mm`],['Ground Clearance',`${s.ground_clearance_mm||'—'} mm`],['Fuel Tank',`${s.fuel_tank_liters||'—'} L`]]},
+        {title:'Brakes & Suspension', items:[['Front Brake',s.front_brake||'—'],['Rear Brake',s.rear_brake||'—'],['ABS',s.has_abs?'Yes':'No'],['Front Suspension',s.front_suspension||'—'],['Rear Suspension',s.rear_suspension||'—']]},
+        {title:'Tyres', items:[['Front',s.front_tyre||'—'],['Rear',s.rear_tyre||'—'],['Type',s.tyre_type||'—']]},
+      ];
+      body.innerHTML = specGroups.map(grp => `
+        <div style="margin-bottom:1.2rem">
+          <div style="font-family:var(--fH);font-weight:700;color:var(--c1);margin-bottom:0.6rem;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.5px">${grp.title}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
+            ${grp.items.map(([l,v])=>`<div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:0.6rem 0.9rem;border-radius:8px"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${l}</div><div style="font-weight:700;font-size:0.88rem;margin-top:0.1rem">${v}</div></div>`).join('')}
+          </div>
+        </div>`).join('');
+      break;
+    case 'gallery':
+      const imgs = d.images || [];
+      if (!imgs.length) {
+        body.innerHTML = '<div class="empty"><div class="ei">🖼️</div>No images available for this motorcycle.</div>';
+      } else {
+        body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.8rem">${imgs.map(img=>`
+          <div style="border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.3);cursor:pointer;border:1px solid var(--border)" onclick="window.open('${img.url}','_blank')">
+            <img src="${img.url}" style="width:100%;height:140px;object-fit:cover" onerror="this.onerror=null;this.src='/api/v1/bikes/placeholder/motorcycle/model'">
+            <div style="padding:0.4rem 0.6rem;font-size:0.72rem;color:var(--muted)">${img.color_name||img.image_type||'exterior'}</div>
+          </div>`).join('')}</div>`;
+      }
+      break;
+    case 'parts':
+      const partCats = d.compatible_parts || [];
+      if (!partCats.length) {
+        body.innerHTML = '<div class="empty"><div class="ei">🔧</div>No compatible parts found for this motorcycle.</div>';
+      } else {
+        body.innerHTML = partCats.map(cat => `
+          <div style="margin-bottom:1.5rem">
+            <div style="font-family:var(--fH);font-weight:700;color:var(--c1);font-size:0.9rem;margin-bottom:0.7rem;text-transform:uppercase;letter-spacing:0.5px">${cat.category_name}</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0.7rem">
+              ${cat.items.map(m=>`
+                <div class="mi" onclick="addPartFromDetail('${m.id}')" style="cursor:pointer">
+                  <div class="minfo">
+                    <h4>${m.brand_name}</h4>
+                    <p>${m.model_name}</p>
+                    ${m.hp_change_bhp>0?`<span class="hp-tag">+${m.hp_change_bhp} bhp</span>`:''}
+                  </div>
+                  <div class="mprice">₹${(m.price_inr/1000).toFixed(1)}k</div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('');
+      }
+      break;
+    case 'predictions':
+      body.innerHTML = `
+        <div class="empty"><div class="ei">🤖</div>
+          <div style="font-weight:700">AI Predictions</div>
+          <div style="font-size:0.85rem;margin-top:0.5rem">Go to the Configurator, select this bike, add compatible mods, then click "Run AI Prediction"</div>
+          <button class="btn" style="margin-top:1rem;width:auto;padding:0.7rem 1.8rem" onclick="closeM('bikeDetailMo')">Open Configurator →</button>
+        </div>`;
+      break;
+    case 'reviews':
+      body.innerHTML = `<div class="empty"><div class="ei">⭐</div><div style="font-weight:700">No Reviews Yet</div><div style="font-size:0.85rem;margin-top:0.5rem">Be the first to review this motorcycle after a test ride!</div></div>`;
+      break;
+  }
+}
+
+function addPartFromDetail(modId) {
+  const mod = mods.find(m => m.id === modId);
+  if (mod) {
+    selMods.has(mod.id) ? selMods.delete(mod.id) : selMods.add(mod.id);
+    toast(selMods.has(mod.id) ? `${mod.brand_name} added to build!` : `${mod.brand_name} removed`, 'ok');
+    renderModItems(curCatSlug);
+    updateSelUI();
+    refreshSummary();
+  } else {
+    toast('Add this bike to your build first to select parts', 'inf');
+  }
+}
+
 // ─── Boot ────────────────────────────────────────────────────────────────────
 async function bootApp() {
   document.getElementById('authView').style.display = 'none';
@@ -776,6 +1101,8 @@ async function bootApp() {
   renderModCatTabs();
   renderModItems('all');
   initCanvas();
+  init360Drag();
+  updateViewerWithVariant(selVariant);
 }
 
 // ─── Data loaders ────────────────────────────────────────────────────────────
@@ -794,17 +1121,19 @@ async function loadModels() {
     models = all;
   } catch(e) { console.error(e); }
 }
-async function loadMods() {
+async function loadMods(variantId) {
   try {
+    let url = `/modifications/accessories?per_page=100`;
+    if (variantId) url += `&variant_id=${variantId}`;
     let all = [], page = 1;
     while(true) {
-      const d = await api(`/modifications/accessories?per_page=50&page=${page}`);
+      const d = await api(url + `&page=${page}`);
       all = [...all, ...(d.items||[])];
       if (!d.meta || page >= (d.meta.total_pages||1)) break;
       page++;
     }
     mods = all;
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('loadMods error:', e); mods = []; }
 }
 async function loadCats() {
   try { cats = await api('/modifications/categories'); } catch(e) { console.error(e); }
@@ -850,7 +1179,7 @@ async function loadDatasetImages() {
     grid.innerHTML = items.map(img => `
       <div class="gcard" style="padding:0.8rem;display:flex;flex-direction:column;gap:0.5rem">
         <div style="position:relative;height:140px;border-radius:8px;overflow:hidden;background:#030712">
-          <img src="${img.file_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='/static/images/hero_xpulse_bike_1784354273708.png'">
+          <img src="${img.file_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.onerror=null; this.src='/api/v1/bikes/placeholder/'+encodeURIComponent(this.dataset.brand||'motorcycle')+'/'+encodeURIComponent(this.dataset.model||'model')">
           <span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.7);color:var(--c1);padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600">${img.view_type.toUpperCase()}</span>
           <span style="position:absolute;top:6px;right:6px;background:${img.status==='approved'?'var(--green)':'var(--amber)'};color:#000;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">${img.status.toUpperCase()}</span>
         </div>
@@ -1215,7 +1544,7 @@ async function pickModel(m) {
   // Load variants
   try {
     const vars = await api(`/bikes/motorcycles/${m.id}/variants`);
-    if (vars && vars.length) { selVariant = vars[0]; renderVariant(selVariant); }
+    if (vars && vars.length) { selVariant = vars[0]; renderVariant(selVariant); await loadMods(selVariant?.id); renderModCatTabs(); renderModItems('all'); }
     else { document.getElementById('variantBox').innerHTML = '<div style="color:var(--muted);font-size:0.88rem">No variant data available.</div>'; }
   } catch(e) { document.getElementById('variantBox').innerHTML = `<div style="color:var(--red);font-size:0.85rem">Failed to load specs: ${e.message}</div>`; }
   refreshSummary();
@@ -1239,7 +1568,8 @@ function renderVariant(v) {
       <div class="st"><div class="st-l">Top Speed</div><div class="st-v">${v.top_speed_kmh} kmh</div></div>
       <div class="st"><div class="st-l">Price</div><div class="st-v" style="color:var(--amber)">₹${(v.price_inr/100000).toFixed(1)}L</div></div>
     </div>
-    <div style="margin-top:0.7rem;font-size:0.75rem;color:var(--muted)">Tank: ${v.fuel_tank_liters}L · ABS: ${v.has_abs?'Yes':'No'}</div>`;
+    <div style="margin-top:0.7rem;font-size:0.75rem;color:var(--muted)">Tank: ${v.fuel_tank_liters}L · ABS: ${v.has_abs?'Yes':'No'}</div>
+    <button onclick="openBikeDetail('${v.id}')" style="margin-top:0.7rem;background:rgba(0,242,254,0.08);border:1px solid var(--c1);color:var(--c1);padding:0.35rem 1rem;border-radius:8px;font-size:0.76rem;cursor:pointer;width:100%;font-weight:600">🔍 Full Details & Compatible Parts</button>`;
 }
 
 
