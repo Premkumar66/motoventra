@@ -872,36 +872,33 @@ function toggleFullscreen() {
 }
 
 function updateViewerWithVariant(variant) {
-  if (!variant) return;
   const hudEl = document.getElementById('hudTxt');
   const galleryImg = document.getElementById('galleryMainImg');
   const galleryStrip = document.getElementById('galleryStrip');
   const cvs = document.getElementById('cvs');
 
-  // Determine primary display image
-  const primaryImg = variant.primary_image_url ||
-    (variant.images && variant.images.find(i => i.is_primary)?.url) ||
-    (variant.images && variant.images[0]?.url) ||
-    null;
+  const fallbackImg = getBikeImg(selModel?.name, selModel?.category, selBrand?.name);
+  const primaryImg = (variant && variant.primary_image_url) ||
+    (variant && variant.images && variant.images.find(i => i.is_primary)?.url) ||
+    (variant && variant.images && variant.images[0]?.url) ||
+    fallbackImg || null;
 
-  if (primaryImg) {
+  if (primaryImg && galleryImg) {
     galleryImg.style.display = 'block';
     galleryImg.src = primaryImg;
-    galleryImg.dataset.brand = selBrand?.slug || '';
-    galleryImg.dataset.model = selModel?.slug || '';
     galleryImg.onerror = function() {
       this.onerror = null;
-      this.src = `/api/v1/bikes/placeholder/${encodeURIComponent(selBrand?.slug||'motorcycle')}/${encodeURIComponent(selModel?.slug||'model')}`;
+      this.src = fallbackImg || `/api/v1/bikes/placeholder/${encodeURIComponent(selBrand?.slug||'motorcycle')}/${encodeURIComponent(selModel?.slug||'model')}`;
     };
-    cvs.style.display = 'none';
+    if (cvs) cvs.style.display = 'none';
     if (hudEl) hudEl.style.display = 'none';
-  } else {
-    // Fall back to canvas wireframe
+  } else if (cvs) {
     galleryImg.style.display = 'none';
     cvs.style.display = 'block';
     if (hudEl) { hudEl.style.display = 'block'; hudEl.textContent = `${selBrand?.name||''} ${selModel?.name||''}`; }
     updateCanvas();
   }
+
 
   // Render gallery strip
   if (variant.images && variant.images.length > 0) {
@@ -1574,7 +1571,9 @@ async function pickModel(m) {
 }
 
 function renderVariant(v) {
+  updateViewerWithVariant(v);
   const imgUrl = getBikeImg(selModel?.name, selModel?.category, selBrand?.name);
+
   document.getElementById('variantBox').innerHTML = `
     <div style="height:145px;border-radius:10px;overflow:hidden;margin-bottom:0.9rem;border:1px solid var(--border);position:relative">
       <img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" alt="${selModel?.name||''}">
