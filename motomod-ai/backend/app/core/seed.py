@@ -4230,8 +4230,11 @@ async def seed_data():
                 m_obj = Motorcycle(id=uuid.uuid4(), brand_id=brand_id, name=bike["name"], slug=m_slug, category=bike["category"], is_active=True)
                 session.add(m_obj)
                 await session.flush()
-                v_obj = MotorcycleVariant(id=uuid.uuid4(), motorcycle_id=m_obj.id, variant_name=bike.get("variant", "Standard"), slug=f"{m_slug}-std", year=bike["year"], price_inr=bike["price"], engine_cc=bike["cc"], horsepower_bhp=bike["hp"], torque_nm=bike["torque"], fuel_tank_liters=bike["tank"], mileage_kmpl=bike["kmpl"], top_speed_kmh=bike["speed"], weight_kg=165.0, seat_height_mm=800.0, ground_clearance_mm=160.0, has_abs=bike["abs"], fuel_type=FuelType.PETROL, cooling=CoolingType.LIQUID, transmission=TransmissionType.MANUAL, emission_standard=EmissionStandard.BS6, is_active=True)
+                img_path = bike.get("image_url") or f"/static/images/{b_slug}_{m_slug.replace('-', '_')}.png"
+                v_obj = MotorcycleVariant(id=uuid.uuid4(), motorcycle_id=m_obj.id, variant_name=bike.get("variant", "Standard"), slug=f"{m_slug}-std", year=bike["year"], price_inr=bike["price"], engine_cc=bike["cc"], horsepower_bhp=bike["hp"], torque_nm=bike["torque"], fuel_tank_liters=bike["tank"], mileage_kmpl=bike["kmpl"], top_speed_kmh=bike["speed"], weight_kg=165.0, seat_height_mm=800.0, ground_clearance_mm=160.0, has_abs=bike["abs"], fuel_type=FuelType.PETROL, cooling=CoolingType.LIQUID, transmission=TransmissionType.MANUAL, emission_standard=EmissionStandard.BS6, primary_image_url=img_path, is_active=True)
                 session.add(v_obj)
+
+
         # 3. Seed Default Users
         from app.models.user import User, UserRole, UserStatus
         from app.core.security import hash_password

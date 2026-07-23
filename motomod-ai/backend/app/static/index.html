@@ -1382,7 +1382,19 @@ function getBikeImg(name, category, brandName) {
   const n = (name || '').toLowerCase();
   const b = (brandName || selBrand?.name || '').toLowerCase();
 
+  // Aprilia Models
+  if (n.includes('rs 457') || n.includes('rs457')) return '/static/images/aprilia_rs_457.png';
+  if (n.includes('rs 660') || n.includes('rs660')) return '/static/images/aprilia_rs_660.png';
+  if (n.includes('rsv4')) return '/static/images/aprilia_rsv4_factory_1100.png';
+  if (n.includes('tuono v4')) return '/static/images/aprilia_tuono_v4_factory.png';
+  if (n.includes('tuono 660') || n.includes('tuono')) return '/static/images/aprilia_tuono_660.png';
+  if (n.includes('tuareg')) return '/static/images/aprilia_tuareg_660_rally.png';
+  if (n.includes('sr 160') || n.includes('sr160') || n.includes('storm')) return '/static/images/aprilia_sr_160_storm.png';
+  if (n.includes('sxr 160') || n.includes('sxr160') || n.includes('maxi')) return '/static/images/aprilia_sxr_160_maxi.png';
+  if (b.includes('aprilia')) return '/static/images/aprilia_rs_457.png';
+
   // Honda Models
+
   if (n.includes('cb300r')) return '/static/images/honda_cb300r.png';
   if (n.includes('hornet 2.0') || n.includes('hornet')) return '/static/images/honda_hornet_20.png';
   if (n.includes('sp160') || n.includes('sp 160')) return '/static/images/honda_sp160.png';
