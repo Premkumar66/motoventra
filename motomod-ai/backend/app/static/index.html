@@ -1393,6 +1393,13 @@ function getBikeImg(name, category, brandName) {
   if (n.includes('sxr 160') || n.includes('sxr160') || n.includes('maxi')) return '/static/images/aprilia_sxr_160_maxi.png';
   if (b.includes('aprilia')) return '/static/images/aprilia_rs_457.png';
 
+  // Ather Models
+  if (n.includes('450s')) return '/static/images/ather_450s_ev.png';
+  if (n.includes('apex') || n.includes('450x')) return '/static/images/ather_450x_apex_ev.png';
+  if (n.includes('rizta')) return '/static/images/ather_rizta_z_ev.png';
+  if (b.includes('ather')) return '/static/images/ather_450x_apex_ev.png';
+
+
   // Honda Models
 
   if (n.includes('cb300r')) return '/static/images/honda_cb300r.png';
