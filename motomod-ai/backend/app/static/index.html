@@ -1555,14 +1555,17 @@ function renderModelGrid() {
   const bm = models.filter(m => m.brand_id === selBrand?.id);
   if (!bm.length) { area.innerHTML = '<div style="color:var(--muted);font-size:0.88rem">No models found for this brand.</div>'; area.className=''; return; }
   area.className = 'mgrid';
-  area.innerHTML = bm.map(m =>
-    `<div class="mc" id="mc-${m.id}" onclick="pickModel(${JSON.stringify(m).replace(/"/g,'&quot;')})">
-      <div style="height:90px;border-radius:8px;overflow:hidden;margin-bottom:0.5rem;background:#050812">
-        <img src="${getBikeImg(m.name, m.category, selBrand?.name)}" style="width:100%;height:100%;object-fit:cover" alt="${m.name}">
+  area.innerHTML = bm.map(m => {
+    const fallback = getBikeImg(m.name, m.category, selBrand?.name);
+    const imgUrl = m.primary_image_url || m.thumbnail_url || fallback;
+    return `<div class="mc" id="mc-${m.id}" onclick="pickModel(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+      <div style="height:100px;border-radius:8px;overflow:hidden;margin-bottom:0.5rem;background:#050812;display:flex;align-items:center;justify-content:center;padding:4px">
+        <img src="${imgUrl}" style="max-width:100%;max-height:100%;object-fit:contain" alt="${m.name}" onerror="this.onerror=null;this.src='${fallback}'">
       </div>
       <div class="mc-name">${m.name}</div>
       <span class="mc-cat">${catLabel(m.category)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function pickModel(m) {
@@ -1582,12 +1585,16 @@ async function pickModel(m) {
 
 function renderVariant(v) {
   updateViewerWithVariant(v);
-  const imgUrl = getBikeImg(selModel?.name, selModel?.category, selBrand?.name);
+  const fallback = getBikeImg(selModel?.name, selModel?.category, selBrand?.name);
+  const imgUrl = (v && v.primary_image_url) ||
+    (v && v.images && v.images.find(i => i.is_primary)?.url) ||
+    (v && v.images && v.images[0]?.url) ||
+    fallback;
 
   document.getElementById('variantBox').innerHTML = `
-    <div style="height:145px;border-radius:10px;overflow:hidden;margin-bottom:0.9rem;border:1px solid var(--border);position:relative">
-      <img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" alt="${selModel?.name||''}">
-      <div style="position:absolute;bottom:0.4rem;left:0.5rem;background:rgba(0,0,0,0.65);padding:0.25rem 0.65rem;border-radius:6px;font-size:0.75rem;font-weight:700;color:var(--c1)">
+    <div style="height:160px;border-radius:10px;overflow:hidden;margin-bottom:0.9rem;border:1px solid var(--border);position:relative;background:#050812;display:flex;align-items:center;justify-content:center;padding:4px">
+      <img src="${imgUrl}" style="max-width:100%;max-height:100%;object-fit:contain" alt="${selModel?.name||''}" onerror="this.onerror=null;this.src='${fallback}'">
+      <div style="position:absolute;bottom:0.4rem;left:0.5rem;background:rgba(0,0,0,0.75);padding:0.25rem 0.65rem;border-radius:6px;font-size:0.75rem;font-weight:700;color:var(--c1)">
         ${selBrand?.name||''} ${selModel?.name||''}
       </div>
     </div>
@@ -1598,6 +1605,7 @@ function renderVariant(v) {
       <div class="st"><div class="st-l">Torque</div><div class="st-v" style="color:var(--c2)">${v.torque_nm} Nm</div></div>
       <div class="st"><div class="st-l">Mileage</div><div class="st-v" style="color:var(--green)">${v.mileage_kmpl} kmpl</div></div>
       <div class="st"><div class="st-l">Top Speed</div><div class="st-v">${v.top_speed_kmh} kmh</div></div>
+
       <div class="st"><div class="st-l">Price</div><div class="st-v" style="color:var(--amber)">₹${(v.price_inr/100000).toFixed(1)}L</div></div>
     </div>
     <div style="margin-top:0.7rem;font-size:0.75rem;color:var(--muted)">Tank: ${v.fuel_tank_liters}L · ABS: ${v.has_abs?'Yes':'No'}</div>
