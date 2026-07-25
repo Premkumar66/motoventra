@@ -283,3 +283,37 @@ async def get_bike_placeholder(brand_slug: str, model_slug: str):
   <rect x="0" y="0" width="800" height="3" fill="url(#accent)" opacity="0.8"/>
 </svg>'''
     return Response(content=svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@router.get(
+    "/dataset-images",
+    summary="Get multi-angle dataset images for a motorcycle model"
+)
+async def get_dataset_images(
+    model_name: str = Query(..., description="Name of the motorcycle model (e.g. Pulsar NS200)"),
+    db: AsyncSession = Depends(get_db)
+):
+    from sqlalchemy import text
+    query = text("""
+        SELECT image_type, file_name, file_path, resolution, source, license, verification_status 
+        FROM dataset_motorcycle_images 
+        WHERE LOWER(model) = LOWER(:model_name)
+        ORDER BY id ASC
+    """)
+    result = await db.execute(query, {"model_name": model_name})
+    rows = result.fetchall()
+    
+    items = []
+    for r in rows:
+        url_path = f"/static/{r.file_path}"
+        items.append({
+            "image_type": r.image_type,
+            "file_name": r.file_name,
+            "url": url_path,
+            "resolution": r.resolution,
+            "source": r.source,
+            "license": r.license,
+            "verification_status": r.verification_status
+        })
+    return {"model_name": model_name, "count": len(items), "items": items}
+
