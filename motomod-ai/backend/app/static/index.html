@@ -1410,6 +1410,12 @@ function getBikeImg(name, category, brandName) {
   if (n.includes('felsberg')) return '/static/images/brixton_felsberg_125_cx.png';
   if (b.includes('brixton')) return '/static/images/brixton_cromwell_1200.png';
 
+  // BSA Models
+  if (n.includes('bantam')) return '/static/images/bsa_bantam_350_concept.png';
+  if (n.includes('gold star')) return '/static/images/bsa_gold_star_650.png';
+  if (n.includes('scrambler 650')) return '/static/images/bsa_scrambler_650.png';
+  if (b.includes('bsa')) return '/static/images/bsa_gold_star_650.png';
+
   // BMW Models
   if (n.includes('ce02') || n.includes('ce 02')) return '/static/images/bmw_ce02_eparkourer.png';
   if (n.includes('ce04') || n.includes('ce 04')) return '/static/images/bmw_ce04_electric.png';
