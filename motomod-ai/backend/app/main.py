@@ -78,10 +78,15 @@ async def health_check():
     db_status = await check_database_connection()
     redis_status = await check_redis_connection()
     
-    overall_status = "healthy" if db_status and redis_status else "degraded"
+    if db_status:
+        overall_status = "healthy" if redis_status else "degraded"
+        status_code = status.HTTP_200_OK
+    else:
+        overall_status = "unhealthy"
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     
     return JSONResponse(
-        status_code=status.HTTP_200_OK if overall_status == "healthy" else status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code=status_code,
         content={
             "status": overall_status,
             "database": "connected" if db_status else "disconnected",
