@@ -1416,6 +1416,13 @@ function getBikeImg(name, category, brandName) {
   if (n.includes('scrambler 650')) return '/static/images/bsa_scrambler_650.png';
   if (b.includes('bsa')) return '/static/images/bsa_gold_star_650.png';
 
+  // CFMOTO Models
+  if (n.includes('300nk')) return '/static/images/cfmoto_300nk_naked.png';
+  if (n.includes('450sr')) return '/static/images/cfmoto_450sr_supersport.png';
+  if (n.includes('650mt')) return '/static/images/cfmoto_650mt_tourer.png';
+  if (n.includes('800nk')) return '/static/images/cfmoto_800nk_hyper_naked.png';
+  if (b.includes('cfmoto')) return '/static/images/cfmoto_450sr_supersport.png';
+
   // BMW Models
   if (n.includes('ce02') || n.includes('ce 02')) return '/static/images/bmw_ce02_eparkourer.png';
   if (n.includes('ce04') || n.includes('ce 04')) return '/static/images/bmw_ce04_electric.png';
