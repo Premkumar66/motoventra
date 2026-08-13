@@ -1404,6 +1404,12 @@ function getBikeImg(name, category, brandName) {
   if (n.includes('xtrainer') || n.includes('xtrainer 300')) return '/static/images/beta_xtrainer_300_enduro.png';
   if (b.includes('beta')) return '/static/images/beta_evo_300_trial.png';
 
+  // Fantic Models
+  if (n.includes('caballero')) return '/static/images/fantic_caballero_500_scrambler.png';
+  if (n.includes('imola')) return '/static/images/fantic_imola_500_concept.png';
+  if (n.includes('xef')) return '/static/images/fantic_xef_450_rally.png';
+  if (b.includes('fantic')) return '/static/images/fantic_caballero_500_scrambler.png';
+
   // Brixton Models
   if (n.includes('cromwell')) return '/static/images/brixton_cromwell_1200.png';
   if (n.includes('crossfire')) return '/static/images/brixton_crossfire_500_xc.png';
