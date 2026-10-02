@@ -18,7 +18,7 @@ from app.schemas.predictions import (
     ResaleValueRequest, ResaleValueResponse,
     SentimentAnalysisRequest, SentimentAnalysisResponse
 )
-from app.api.v1.dependencies.auth import get_current_user
+from app.api.v1.dependencies.auth import get_current_user, get_optional_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/predictions", tags=["AI Modules"])
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/predictions", tags=["AI Modules"])
 )
 async def predict_performance(
     payload: PerformancePredictionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     start_time = time.time()
@@ -61,11 +61,11 @@ async def predict_performance(
     
     # Top speed is calculated as a regression: speed increases proportional to sqrt(HP ratio)
     new_hp = base_hp + hp_gain
-    speed_mult = (new_hp / base_hp) ** 0.5
+    speed_mult = (new_hp / base_hp) ** 0.5 if base_hp > 0 else 1.0
     new_speed = base_speed * speed_mult
     speed_gain = new_speed - base_speed
 
-    # Create history entry
+    # Create history entry if user is authenticated
     input_data = {
         "variant_id": str(payload.variant_id),
         "modification_ids": [str(mid) for mid in payload.modification_ids],
@@ -78,20 +78,20 @@ async def predict_performance(
         "top_speed_kmh": round(new_speed, 2)
     }
 
-    hist = PredictionHistory(
-        user_id=current_user.id,
-        variant_id=payload.variant_id,
-        prediction_type=PredictionType.MILEAGE,  # Multi-spec performance prediction
-        input_features=input_data,
-        predicted_values=predicted_vals,
-        confidence=0.89,
-        model_name="Ensemble-XGBoost-V1",
-        model_version="1.0.0",
-        inference_time_ms=int((time.time() - start_time) * 1000)
-    )
-    
-    db.add(hist)
-    await db.commit()
+    if current_user:
+        hist = PredictionHistory(
+            user_id=current_user.id,
+            variant_id=payload.variant_id,
+            prediction_type=PredictionType.MILEAGE,  # Multi-spec performance prediction
+            input_features=input_data,
+            predicted_values=predicted_vals,
+            confidence=0.89,
+            model_name="Ensemble-XGBoost-V1",
+            model_version="1.0.0",
+            inference_time_ms=int((time.time() - start_time) * 1000)
+        )
+        db.add(hist)
+        await db.commit()
 
     return {
         "variant_id": payload.variant_id,
@@ -120,7 +120,7 @@ async def predict_performance(
 )
 async def get_budget_recommendations(
     payload: BudgetRecommendationRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # Fetch compatible modifications
@@ -158,7 +158,7 @@ async def get_budget_recommendations(
 )
 async def predict_maintenance(
     payload: MaintenancePredictionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # Heuristics based on riding style and odometer

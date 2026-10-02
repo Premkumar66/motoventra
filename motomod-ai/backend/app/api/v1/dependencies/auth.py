@@ -56,6 +56,30 @@ async def get_current_user(
     return user
 
 
+async def get_optional_current_user(
+    token: str | None = Depends(OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)),
+    db: AsyncSession = Depends(get_db)
+) -> User | None:
+    """
+    Returns verified user if token is provided, or None if guest user.
+    """
+    if not token:
+        return None
+    try:
+        payload = decode_token(token, ACCESS_TOKEN_TYPE)
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        result = await db.execute(select(User).filter_by(id=user_id))
+        user = result.scalar_one_or_none()
+        if user and user.is_active and user.status != UserStatus.BANNED:
+            return user
+    except Exception:
+        pass
+    return None
+
+
+
 class PermissionGuard:
     """
     Enforces that a user has a specific permission scope.

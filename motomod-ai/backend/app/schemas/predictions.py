@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class PerformancePredictionRequest(BaseModel):
     variant_id: uuid.UUID = Field(..., description="Target motorcycle variant ID")
-    modification_ids: List[uuid.UUID] = Field(..., min_length=1, max_length=20, description="List of planned accessories")
+    modification_ids: List[uuid.UUID] = Field(default_factory=list, min_length=0, max_length=20, description="List of planned accessories")
 
 
 class BudgetRecommendationRequest(BaseModel):
