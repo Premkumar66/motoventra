@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <!-- model-viewer for 3D GLB models -->
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+<!-- QRCode generator for instant offline QR code creation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root {
   --bg: #060b18;
@@ -30,6 +32,9 @@
   --r: 14px;
   --shadow: 0 8px 32px rgba(0,0,0,0.35);
 }
+.pay-opt-tile{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:0.75rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s ease}
+.pay-opt-tile:hover{background:rgba(0,242,254,0.06);border-color:rgba(0,242,254,0.3);transform:translateY(-2px)}
+.pay-opt-tile.on{background:rgba(0,242,254,0.12);border-color:var(--c1);box-shadow:0 0 16px rgba(0,242,254,0.25)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--txt);font-family:var(--fB);overflow-x:hidden;
@@ -505,20 +510,46 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);overflow-x:hidd
 
 <!-- ─── CHECKOUT MODAL ─── -->
 <div class="mo" id="checkoutMo">
-  <div class="mb" style="width:620px;max-width:96vw">
+  <div class="mb" style="width:640px;max-width:96vw">
     <div class="mh"><h3 id="coTitle">🛒 Checkout — Order & Payment</h3><button class="mx" id="coCloseBtn" onclick="closeM('checkoutMo')">✕</button></div>
     <div class="mbody" id="coBody">
       <div id="coLines"></div>
       <div class="ptot"><span>Total Payable</span><span id="coTotal">—</span></div>
 
       <div style="margin:1.1rem 0">
-        <label class="fl" style="margin-bottom:0.5rem">Select Payment Method</label>
-        <select class="sel" id="payMethod" onchange="onPayMethodChange()">
-          <option value="upi">⚡ UPI QR / PhonePe / GPay / PayTM / BHIM</option>
-          <option value="card">💳 Credit / Debit Card</option>
-          <option value="netbanking">🏦 Net Banking</option>
-          <option value="emi">🏧 EMI (0% for 6 months)</option>
-        </select>
+        <label class="fl" style="margin-bottom:0.5rem">Choose Payment Method</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.6rem">
+          <div class="pay-opt-tile on" id="opt-qr" onclick="selectPayOption('qr')">
+            <div style="font-size:1.3rem">📱</div>
+            <div style="font-weight:700;font-size:0.78rem">Scan QR</div>
+            <div style="font-size:0.64rem;color:var(--muted)">Instant UPI</div>
+          </div>
+          <div class="pay-opt-tile" id="opt-phonepe" onclick="selectPayOption('phonepe')">
+            <div style="font-size:1.3rem">🟣</div>
+            <div style="font-weight:700;font-size:0.78rem">PhonePe</div>
+            <div style="font-size:0.64rem;color:var(--muted)">App / VPA</div>
+          </div>
+          <div class="pay-opt-tile" id="opt-gpay" onclick="selectPayOption('gpay')">
+            <div style="font-size:1.3rem">🔵</div>
+            <div style="font-weight:700;font-size:0.78rem">Google Pay</div>
+            <div style="font-size:0.64rem;color:var(--muted)">GPay UPI</div>
+          </div>
+          <div class="pay-opt-tile" id="opt-paytm" onclick="selectPayOption('paytm')">
+            <div style="font-size:1.3rem">🔷</div>
+            <div style="font-weight:700;font-size:0.78rem">Paytm / BHIM</div>
+            <div style="font-size:0.64rem;color:var(--muted)">UPI ID</div>
+          </div>
+          <div class="pay-opt-tile" id="opt-card" onclick="selectPayOption('card')">
+            <div style="font-size:1.3rem">💳</div>
+            <div style="font-weight:700;font-size:0.78rem">Card</div>
+            <div style="font-size:0.64rem;color:var(--muted)">Credit / Debit</div>
+          </div>
+          <div class="pay-opt-tile" id="opt-netbanking" onclick="selectPayOption('netbanking')">
+            <div style="font-size:1.3rem">🏦</div>
+            <div style="font-weight:700;font-size:0.78rem">Net Banking</div>
+            <div style="font-size:0.64rem;color:var(--muted)">All Banks</div>
+          </div>
+        </div>
       </div>
 
       <!-- Dynamic Payment View Container -->
@@ -1944,6 +1975,7 @@ function renderShopItems(slug) {
 // ─── Checkout & Payment Engine ────────────────────────────────────────────────
 let upiTimerInterval = null;
 let currentOrderAmount = 0;
+let curPayOption = 'qr';
 
 function openCheckout() {
   if (!selVariant) { toast('Select a bike first!', 'err'); return; }
@@ -1963,49 +1995,84 @@ function openCheckout() {
     selList.map(m => `<div class="pline"><span>${m.brand_name} ${m.model_name}</span><span>₹${(m.price_inr/1000).toFixed(1)}k</span></div>`).join('');
   document.getElementById('coTotal').innerHTML = `₹${(currentOrderAmount/100000).toFixed(2)}L`;
 
-  document.getElementById('payMethod').value = 'upi';
-  onPayMethodChange();
+  selectPayOption('qr');
   document.getElementById('checkoutMo').classList.add('open');
 }
 
-function onPayMethodChange() {
-  const method = document.getElementById('payMethod').value;
+function selectPayOption(opt) {
+  curPayOption = opt;
+  document.querySelectorAll('.pay-opt-tile').forEach(t => t.classList.remove('on'));
+  document.getElementById(`opt-${opt}`)?.classList.add('on');
+  renderSelectedPayArea(opt);
+}
+
+function renderSelectedPayArea(opt) {
   const area = document.getElementById('payArea');
   const btnArea = document.getElementById('payBtnArea');
   clearInterval(upiTimerInterval);
 
-  if (method === 'upi') {
-    const amountInrStr = (currentOrderAmount/100000).toFixed(2) + 'L';
-    const amountInrRaw = Math.round(currentOrderAmount);
-    const qrData = encodeURIComponent(`upi://pay?pa=motomodai@icici&pn=MotoMod%20AI%20Motorsports&am=${amountInrRaw}&cu=INR&tn=MotoMod%20Build%20Order`);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${qrData}`;
+  const amountInrStr = (currentOrderAmount/100000).toFixed(2) + 'L';
+  const amountInrRaw = Math.round(currentOrderAmount);
+  const vpa = "motomodai@icici";
+  const upiUri = `upi://pay?pa=${vpa}&pn=MotoMod%20AI%20Motorsports&am=${amountInrRaw}&cu=INR&tn=MotoMod%20Build%20Order`;
+  const primaryQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiUri)}`;
+  const secondaryQrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiUri)}&size=240`;
+
+  if (opt === 'qr' || opt === 'phonepe' || opt === 'gpay' || opt === 'paytm') {
+    let appTitle = "⚡ SCAN & PAY VIA ANY UPI APP";
+    let appIcon = "📱";
+    if (opt === 'phonepe') { appTitle = "🟣 PAY VIA PHONEPE"; appIcon = "🟣"; }
+    if (opt === 'gpay') { appTitle = "🔵 PAY VIA GOOGLE PAY (GPAY)"; appIcon = "🔵"; }
+    if (opt === 'paytm') { appTitle = "🔷 PAY VIA PAYTM / BHIM UPI"; appIcon = "🔷"; }
 
     area.innerHTML = `
-      <div style="background:rgba(0,242,254,0.03);border:1px solid rgba(0,242,254,0.15);border-radius:12px;padding:1.2rem;text-align:center">
-        <div style="font-size:0.85rem;color:var(--c1);font-weight:700;margin-bottom:0.6rem">⚡ SCAN & PAY VIA ANY UPI APP</div>
+      <div style="background:rgba(0,242,254,0.03);border:1px solid rgba(0,242,254,0.18);border-radius:12px;padding:1.2rem;text-align:center">
+        <div style="font-size:0.88rem;color:var(--c1);font-weight:800;letter-spacing:0.5px;margin-bottom:0.8rem">
+          ${appIcon} ${appTitle}
+        </div>
         
-        <div style="position:relative;display:inline-block;margin:0.4rem 0">
-          <img src="${qrUrl}" style="width:200px;height:200px;border-radius:12px;border:3px solid var(--c1);background:#fff;padding:8px;box-shadow:0 0 20px rgba(0,242,254,0.2)" alt="UPI QR Code">
+        <div style="position:relative;display:inline-block;margin:0.2rem 0">
+          <div id="qrCanvasBox" style="width:210px;height:210px;border-radius:12px;border:3px solid var(--c1);background:#fff;padding:8px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(0,242,254,0.25)">
+            <img id="qrImg" src="${primaryQrUrl}" style="width:100%;height:100%;object-fit:contain" alt="UPI QR Code"
+              onerror="this.onerror=null; this.src='${secondaryQrUrl}';">
+          </div>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:50%;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
-            <span style="font-size:1.2rem">⚡</span>
+            <span style="font-size:1.1rem">⚡</span>
           </div>
         </div>
 
-        <div style="font-family:var(--fH);font-size:1.4rem;font-weight:900;color:var(--green);margin-top:0.4rem">₹${amountInrStr}</div>
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem">VPA: <strong style="color:var(--txt)">motomodai@icici</strong></div>
+        <div style="font-family:var(--fH);font-size:1.5rem;font-weight:900;color:var(--green);margin-top:0.5rem">₹${amountInrStr}</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.6rem">UPI VPA: <strong style="color:var(--txt)">${vpa}</strong></div>
 
-        <!-- Supported UPI Apps -->
-        <div style="display:flex;justify-content:center;gap:0.6rem;margin-bottom:0.8rem;font-size:0.72rem">
-          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🟣 PhonePe</span>
-          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🔵 GPay</span>
-          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🔷 Paytm</span>
-          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🟧 BHIM</span>
-        </div>
+        ${opt !== 'qr' ? `
+          <div style="max-width:340px;margin:0.6rem auto 0.8rem auto">
+            <input type="text" class="fi" placeholder="Enter your ${opt==='phonepe'?'PhonePe Mobile / VPA':opt==='gpay'?'GPay Mobile / VPA':'UPI ID (e.g. name@upi)'}" style="text-align:center;font-weight:600" id="userUpiInput">
+          </div>
+        ` : ''}
 
-        <div style="font-size:0.75rem;color:var(--amber);background:rgba(255,170,0,0.08);padding:0.4rem 0.8rem;border-radius:6px" id="upiTimerTxt">
+        <div style="font-size:0.75rem;color:var(--amber);background:rgba(255,170,0,0.08);padding:0.4rem 0.8rem;border-radius:6px;margin-top:0.4rem" id="upiTimerTxt">
           ⏱️ QR Code valid for <span id="upiTimer">09:59</span> minutes
         </div>
       </div>`;
+
+    // Try rendering with client-side QRCode library if loaded
+    setTimeout(() => {
+      if (window.QRCode && document.getElementById('qrCanvasBox')) {
+        try {
+          document.getElementById('qrCanvasBox').innerHTML = '';
+          new QRCode(document.getElementById('qrCanvasBox'), {
+            text: upiUri,
+            width: 194,
+            height: 194,
+            colorDark: "#060b18",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        } catch(e) {
+          console.warn('QRCode JS render fallback to img:', e);
+        }
+      }
+    }, 100);
 
     btnArea.innerHTML = `<button class="btn" style="background:linear-gradient(135deg,#00f2fe,#9b51e0);width:100%;padding:0.85rem;font-weight:800;font-size:0.95rem" onclick="verifyUpiPayment()">✅ I Have Completed Payment — Verify & Place Order</button>`;
 
@@ -2025,7 +2092,7 @@ function onPayMethodChange() {
       if (timerEl) timerEl.textContent = `${m}:${s}`;
     }, 1000);
 
-  } else if (method === 'card') {
+  } else if (opt === 'card') {
     area.innerHTML = `
       <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
         <div class="fg">
@@ -2037,8 +2104,8 @@ function onPayMethodChange() {
           <div><label class="fl">CVV</label><input type="password" class="fi" placeholder="•••" maxlength="4"></div>
         </div>
       </div>`;
-    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">💳 Pay ₹${(currentOrderAmount/100000).toFixed(2)}L & Place Order</button>`;
-  } else if (method === 'netbanking') {
+    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">💳 Pay ₹${amountInrStr} & Place Order</button>`;
+  } else if (opt === 'netbanking') {
     area.innerHTML = `
       <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
         <label class="fl" style="margin-bottom:0.5rem">Select Your Bank</label>
@@ -2051,17 +2118,6 @@ function onPayMethodChange() {
         </select>
       </div>`;
     btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">🏦 Pay via Net Banking & Place Order</button>`;
-  } else {
-    area.innerHTML = `
-      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
-        <label class="fl" style="margin-bottom:0.5rem">Select EMI Tenure</label>
-        <select class="sel">
-          <option>3 Months No-Cost EMI @ ₹${(currentOrderAmount/3).toFixed(0)}/mo</option>
-          <option>6 Months No-Cost EMI @ ₹${(currentOrderAmount/6).toFixed(0)}/mo</option>
-          <option>12 Months EMI @ ₹${(currentOrderAmount/12*1.08).toFixed(0)}/mo</option>
-        </select>
-      </div>`;
-    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">🏧 Confirm EMI & Place Order</button>`;
   }
 }
 
