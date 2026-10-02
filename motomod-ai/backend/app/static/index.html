@@ -505,22 +505,28 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);overflow-x:hidd
 
 <!-- ─── CHECKOUT MODAL ─── -->
 <div class="mo" id="checkoutMo">
-  <div class="mb">
-    <div class="mh"><h3>🛒 Checkout — Build Summary</h3><button class="mx" onclick="closeM('checkoutMo')">✕</button></div>
-    <div class="mbody">
+  <div class="mb" style="width:620px;max-width:96vw">
+    <div class="mh"><h3 id="coTitle">🛒 Checkout — Order & Payment</h3><button class="mx" id="coCloseBtn" onclick="closeM('checkoutMo')">✕</button></div>
+    <div class="mbody" id="coBody">
       <div id="coLines"></div>
-      <div class="ptot"><span>Total</span><span id="coTotal">—</span></div>
+      <div class="ptot"><span>Total Payable</span><span id="coTotal">—</span></div>
+
       <div style="margin:1.1rem 0">
-        <label class="fl" style="margin-bottom:0.5rem">Payment Method</label>
-        <select class="sel" id="payMethod">
-          <option value="upi">UPI / PhonePe / BHIM</option>
-          <option value="card">Credit / Debit Card</option>
-          <option value="netbanking">Net Banking</option>
-          <option value="emi">EMI (0% for 6 months)</option>
-          <option value="wallet">Paytm / Amazon Pay</option>
+        <label class="fl" style="margin-bottom:0.5rem">Select Payment Method</label>
+        <select class="sel" id="payMethod" onchange="onPayMethodChange()">
+          <option value="upi">⚡ UPI QR / PhonePe / GPay / PayTM / BHIM</option>
+          <option value="card">💳 Credit / Debit Card</option>
+          <option value="netbanking">🏦 Net Banking</option>
+          <option value="emi">🏧 EMI (0% for 6 months)</option>
         </select>
       </div>
-      <button class="btn" onclick="doPay()">💳 Pay via Razorpay</button>
+
+      <!-- Dynamic Payment View Container -->
+      <div id="payArea" style="margin-bottom:1rem"></div>
+
+      <div style="margin-top:1rem" id="payBtnArea">
+        <button class="btn" id="mainPayBtn" onclick="doPay()">🚀 Proceed to Pay</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1935,23 +1941,200 @@ function renderShopItems(slug) {
   }).join('');
 }
 
-// ─── Checkout ────────────────────────────────────────────────────────────────
+// ─── Checkout & Payment Engine ────────────────────────────────────────────────
+let upiTimerInterval = null;
+let currentOrderAmount = 0;
+
 function openCheckout() {
   if (!selVariant) { toast('Select a bike first!', 'err'); return; }
   const selList = mods.filter(m => selMods.has(m.id));
-  const bp = selVariant.price_inr, mt = selList.reduce((s,m)=>s+(m.price_inr||0),0);
+  const bp = selVariant.price_inr || 0;
+  const mt = selList.reduce((s,m)=>s+(m.price_inr||0),0);
+  currentOrderAmount = bp + mt;
+
+  // Reset title & body container
+  const titleEl = document.getElementById('coTitle');
+  if (titleEl) titleEl.textContent = '🛒 Checkout — Order & Payment';
+  const closeBtn = document.getElementById('coCloseBtn');
+  if (closeBtn) closeBtn.style.display = 'block';
+
   document.getElementById('coLines').innerHTML =
-    `<div class="pline"><span>${selBrand?.name} ${selModel?.name} (${selVariant.variant_name})</span><span>₹${(bp/100000).toFixed(2)}L</span></div>` +
+    `<div class="pline"><span>${selBrand?.name||''} ${selModel?.name||''} (${selVariant.variant_name||''})</span><span>₹${(bp/100000).toFixed(2)}L</span></div>` +
     selList.map(m => `<div class="pline"><span>${m.brand_name} ${m.model_name}</span><span>₹${(m.price_inr/1000).toFixed(1)}k</span></div>`).join('');
-  document.getElementById('coTotal').innerHTML = `₹${((bp+mt)/100000).toFixed(2)}L`;
+  document.getElementById('coTotal').innerHTML = `₹${(currentOrderAmount/100000).toFixed(2)}L`;
+
+  document.getElementById('payMethod').value = 'upi';
+  onPayMethodChange();
   document.getElementById('checkoutMo').classList.add('open');
 }
-function doPay() {
-  closeM('checkoutMo');
-  toast('Razorpay gateway initiated…', 'inf');
-  setTimeout(() => toast(`Order #MM${Math.floor(Math.random()*900000+100000)} confirmed! Payment received.`, 'ok'), 2500);
+
+function onPayMethodChange() {
+  const method = document.getElementById('payMethod').value;
+  const area = document.getElementById('payArea');
+  const btnArea = document.getElementById('payBtnArea');
+  clearInterval(upiTimerInterval);
+
+  if (method === 'upi') {
+    const amountInrStr = (currentOrderAmount/100000).toFixed(2) + 'L';
+    const amountInrRaw = Math.round(currentOrderAmount);
+    const qrData = encodeURIComponent(`upi://pay?pa=motomodai@icici&pn=MotoMod%20AI%20Motorsports&am=${amountInrRaw}&cu=INR&tn=MotoMod%20Build%20Order`);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${qrData}`;
+
+    area.innerHTML = `
+      <div style="background:rgba(0,242,254,0.03);border:1px solid rgba(0,242,254,0.15);border-radius:12px;padding:1.2rem;text-align:center">
+        <div style="font-size:0.85rem;color:var(--c1);font-weight:700;margin-bottom:0.6rem">⚡ SCAN & PAY VIA ANY UPI APP</div>
+        
+        <div style="position:relative;display:inline-block;margin:0.4rem 0">
+          <img src="${qrUrl}" style="width:200px;height:200px;border-radius:12px;border:3px solid var(--c1);background:#fff;padding:8px;box-shadow:0 0 20px rgba(0,242,254,0.2)" alt="UPI QR Code">
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:50%;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
+            <span style="font-size:1.2rem">⚡</span>
+          </div>
+        </div>
+
+        <div style="font-family:var(--fH);font-size:1.4rem;font-weight:900;color:var(--green);margin-top:0.4rem">₹${amountInrStr}</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem">VPA: <strong style="color:var(--txt)">motomodai@icici</strong></div>
+
+        <!-- Supported UPI Apps -->
+        <div style="display:flex;justify-content:center;gap:0.6rem;margin-bottom:0.8rem;font-size:0.72rem">
+          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🟣 PhonePe</span>
+          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🔵 GPay</span>
+          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🔷 Paytm</span>
+          <span style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px">🟧 BHIM</span>
+        </div>
+
+        <div style="font-size:0.75rem;color:var(--amber);background:rgba(255,170,0,0.08);padding:0.4rem 0.8rem;border-radius:6px" id="upiTimerTxt">
+          ⏱️ QR Code valid for <span id="upiTimer">09:59</span> minutes
+        </div>
+      </div>`;
+
+    btnArea.innerHTML = `<button class="btn" style="background:linear-gradient(135deg,#00f2fe,#9b51e0);width:100%;padding:0.85rem;font-weight:800;font-size:0.95rem" onclick="verifyUpiPayment()">✅ I Have Completed Payment — Verify & Place Order</button>`;
+
+    // Start timer
+    let sec = 599;
+    upiTimerInterval = setInterval(() => {
+      sec--;
+      if (sec <= 0) {
+        clearInterval(upiTimerInterval);
+        const tEl = document.getElementById('upiTimerTxt');
+        if (tEl) tEl.textContent = '⚠️ QR Code Expired. Please refresh checkout.';
+        return;
+      }
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      const timerEl = document.getElementById('upiTimer');
+      if (timerEl) timerEl.textContent = `${m}:${s}`;
+    }, 1000);
+
+  } else if (method === 'card') {
+    area.innerHTML = `
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
+        <div class="fg">
+          <label class="fl">Card Number</label>
+          <input type="text" class="fi" placeholder="4532 •••• •••• 8920" maxlength="19">
+        </div>
+        <div class="fg" style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+          <div><label class="fl">Expiry (MM/YY)</label><input type="text" class="fi" placeholder="12/28"></div>
+          <div><label class="fl">CVV</label><input type="password" class="fi" placeholder="•••" maxlength="4"></div>
+        </div>
+      </div>`;
+    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">💳 Pay ₹${(currentOrderAmount/100000).toFixed(2)}L & Place Order</button>`;
+  } else if (method === 'netbanking') {
+    area.innerHTML = `
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
+        <label class="fl" style="margin-bottom:0.5rem">Select Your Bank</label>
+        <select class="sel">
+          <option>HDFC Bank</option>
+          <option>ICICI Bank</option>
+          <option>State Bank of India (SBI)</option>
+          <option>Axis Bank</option>
+          <option>Kotak Mahindra Bank</option>
+        </select>
+      </div>`;
+    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">🏦 Pay via Net Banking & Place Order</button>`;
+  } else {
+    area.innerHTML = `
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem">
+        <label class="fl" style="margin-bottom:0.5rem">Select EMI Tenure</label>
+        <select class="sel">
+          <option>3 Months No-Cost EMI @ ₹${(currentOrderAmount/3).toFixed(0)}/mo</option>
+          <option>6 Months No-Cost EMI @ ₹${(currentOrderAmount/6).toFixed(0)}/mo</option>
+          <option>12 Months EMI @ ₹${(currentOrderAmount/12*1.08).toFixed(0)}/mo</option>
+        </select>
+      </div>`;
+    btnArea.innerHTML = `<button class="btn" style="width:100%;padding:0.85rem" onclick="doPay()">🏧 Confirm EMI & Place Order</button>`;
+  }
 }
-function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+async function verifyUpiPayment() {
+  clearInterval(upiTimerInterval);
+  const btnArea = document.getElementById('payBtnArea');
+  const closeBtn = document.getElementById('coCloseBtn');
+  if (closeBtn) closeBtn.style.display = 'none';
+
+  btnArea.innerHTML = `<div class="loading"><div class="spin"></div> Verifying UPI Reference with Bank Server…</div>`;
+
+  setTimeout(() => {
+    btnArea.innerHTML = `<div class="loading" style="color:var(--green)"><div class="spin"></div> Payment Received! Placing Order…</div>`;
+    setTimeout(() => {
+      renderOrderSuccess('UPI');
+    }, 1200);
+  }, 1800);
+}
+
+function doPay() {
+  const btnArea = document.getElementById('payBtnArea');
+  btnArea.innerHTML = `<div class="loading"><div class="spin"></div> Processing Payment…</div>`;
+  setTimeout(() => {
+    renderOrderSuccess('Card/Gateway');
+  }, 2000);
+}
+
+function renderOrderSuccess(payType) {
+  const orderNum = 'MM-' + Math.floor(Math.random() * 900000 + 100000);
+  const selList = mods.filter(m => selMods.has(m.id));
+  const amountStr = (currentOrderAmount/100000).toFixed(2) + 'L';
+
+  const titleEl = document.getElementById('coTitle');
+  if (titleEl) titleEl.textContent = '🎉 Order Confirmed!';
+  const closeBtn = document.getElementById('coCloseBtn');
+  if (closeBtn) closeBtn.style.display = 'block';
+
+  document.getElementById('coBody').innerHTML = `
+    <div style="text-align:center;padding:1rem 0">
+      <div style="width:64px;height:64px;background:rgba(0,242,254,0.15);border:2px solid var(--c1);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:0.8rem">🎉</div>
+      <h2 style="font-family:var(--fH);font-size:1.4rem;font-weight:900;color:var(--green)">Payment Confirmed & Order Placed!</h2>
+      <div style="font-size:0.85rem;color:var(--muted);margin-top:0.3rem">Order Ref: <strong style="color:var(--c1)">#${orderNum}</strong> • Paid via ${payType}</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:1rem;margin:1rem 0">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.5rem">
+        <span style="color:var(--muted)">Motorcycle:</span>
+        <strong style="color:var(--txt)">${selBrand?.name||''} ${selModel?.name||''} (${selVariant?.variant_name||''})</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.5rem">
+        <span style="color:var(--muted)">Accessories Included:</span>
+        <strong style="color:var(--txt)">${selList.length} item(s)</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;border-top:1px solid rgba(255,255,255,0.05);padding-top:0.5rem">
+        <span style="color:var(--muted)">Amount Paid:</span>
+        <strong style="color:var(--green);font-size:1rem">₹${amountStr}</strong>
+      </div>
+    </div>
+
+    <div style="background:rgba(0,242,254,0.04);border:1px solid rgba(0,242,254,0.15);border-radius:8px;padding:0.8rem;font-size:0.8rem;color:var(--muted);display:flex;align-items:center;gap:0.6rem">
+      <span style="font-size:1.2rem">🚚</span>
+      <div>Estimated Delivery & Fitment: <strong style="color:var(--txt)">3–5 Business Days</strong> at your preferred workshop.</div>
+    </div>
+
+    <div style="display:flex;gap:0.8rem;margin-top:1.2rem">
+      <button class="btn" style="flex:1" onclick="closeM('checkoutMo');toast('Order Saved to your Profile!', 'ok')">Done</button>
+    </div>`;
+}
+
+function closeM(id) {
+  clearInterval(upiTimerInterval);
+  document.getElementById(id).classList.remove('open');
+}
 
 // ─── 3D Canvas ───────────────────────────────────────────────────────────────
 let ctx = null, angle = 0;
